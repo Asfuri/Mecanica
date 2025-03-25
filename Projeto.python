@@ -1,0 +1,88 @@
+import numpy as np
+import matplotlib.pyplot as plt
+np.set_printoptions(linewidth=200)
+E = 70e9
+A = 0.000063
+L1 = np.sqrt(5)
+L2 = 2
+EAKL1 = E*A/L1
+EAKL2 = E*A/L2
+k1 = []
+k2 = []
+
+ang1 = np.arctan(-0.5)
+ang2 = 0
+
+# primeiro, vamos fazer a matriz do elemento 1
+# cos^2 cos*sin -cos^2 -cos*sin
+# cos*sin sin^2 - cos*sin -sin^2
+# -cos^2 -cos*sin cos^2 cos*sin
+# -cos*sin -sin^2 cos*sin sin^2
+
+k1 = np.array([
+    [np.cos(ang1)**2, np.cos(ang1)*np.sin(ang1), -1*np.cos(ang1)**2, -1*np.cos(ang1)*np.sin(ang1)],
+    [np.cos(ang1)*np.sin(ang1), np.sin(ang1)**2, -1*np.cos(ang1)*np.sin(ang1), -1*np.sin(ang1)**2],
+    [-1*np.cos(ang1)**2, -1*np.cos(ang1)*np.sin(ang1), np.cos(ang1)**2, np.cos(ang1)*np.sin(ang1)],
+    [-1*np.cos(ang1)*np.sin(ang1), -1*np.sin(ang1)**2, np.cos(ang1)*np.sin(ang1), np.sin(ang1)**2]
+])
+
+k2 = np.array([
+    [np.cos(ang2)**2, np.cos(ang2)*np.sin(ang2), -1*np.cos(ang2)**2, -1*np.cos(ang2)*np.sin(ang2)],
+    [np.cos(ang2)*np.sin(ang2), np.sin(ang2)**2, -1*np.cos(ang2)*np.sin(ang2), -1*np.sin(ang2)**2],
+    [-1*np.cos(ang2)**2, -1*np.cos(ang2)*np.sin(ang2), np.cos(ang2)**2, np.cos(ang2)*np.sin(ang2)],
+    [-1*np.cos(ang2)*np.sin(ang2), -1*np.sin(ang2)**2, np.cos(ang2)*np.sin(ang2), np.sin(ang2)**2]
+])
+
+# Criar uma matriz 6x6 preenchida com zeros
+matriz_6x6 = np.zeros((6, 6))
+
+# Inserir os elementos de k1 na matriz 6x6 começando em (0,0)
+matriz_6x6[0:4, 0:4] += (EAKL1 * k1)
+
+# Inserir os elementos de k2 na matriz 6x6 começando em (2,2)
+matriz_6x6[2:6, 2:6] += (EAKL2 * k2)
+
+matriz_resumida = np.zeros((2,2))
+matriz_resumida[0:2, 0:2] += matriz_6x6[2:4, 2:4]
+
+b = np.array([0, -1000])
+solucao = np.linalg.solve(matriz_resumida, b)
+print(f'A solução do sistema é: x = {solucao[0]}, y = {solucao[1]}')
+
+b_grande = np.array([[0], [0], [solucao[0]], [solucao[1]], [0], [0]])
+
+MatrizForcasReacao = np.dot(matriz_6x6, b_grande)
+print(MatrizForcasReacao)
+
+T1 = np.array([
+    [np.cos(ang1), np.sin(ang1), 0, 0],
+    [-1*np.sin(ang1), np.cos(ang1), 0, 0],
+    [0, 0, np.cos(ang1), np.sin(ang1)],
+    [0, 0, -1*np.sin(ang1), np.cos(ang1)]
+])
+T2 = np.array([
+    [np.cos(ang2), np.sin(ang2), 0, 0],
+    [-1*np.sin(ang2), np.cos(ang2), 0, 0],
+    [0, 0, np.cos(ang2), np.sin(ang2)],
+    [0, 0, -1*np.sin(ang2), np.cos(ang2)]
+])
+D1 = np.dot(T1, b_grande[0:4, 0])
+print(D1)
+D2 = np.dot(T2, b_grande[2:6, 0])
+print(D2)
+
+MatrizLocalForcasDeslocamento = np.array([
+    [1, 0, -1, 0],
+    [0, 0, 0, 0],
+    [-1, 0, 1, 0],
+    [0, 0, 0, 0]
+])
+MatrizForcaAxial1 = EAKL1 * np.dot(MatrizLocalForcasDeslocamento, D1)
+print(MatrizForcaAxial1)
+MatrizForcaAxial2 = EAKL2 * np.dot(MatrizLocalForcasDeslocamento, D2)
+print(MatrizForcaAxial2)
+
+Tensao1 = (MatrizForcaAxial1[2] + MatrizForcaAxial1[3])/A
+print(Tensao1)
+Tensao2 = (MatrizForcaAxial2[2] + MatrizForcaAxial2[3])/A
+print(Tensao2)
